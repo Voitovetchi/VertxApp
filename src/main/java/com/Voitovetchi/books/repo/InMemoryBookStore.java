@@ -11,10 +11,10 @@ import java.util.Map;
 public class InMemoryBookStore {
   private Map<Long, Book> books = new HashMap<>();
 
-  public InMemoryBookStore() {
+  /*public InMemoryBookStore() {
     books.put(1l, new Book(1l, "book1", "author1", new Date(80, 0, 1)));
     books.put(2l, new Book(2l, "book2", "author2", new Date(80, 0, 2)));
-  }
+  }*/
 
   public JsonArray getAll() {
     JsonArray all = new JsonArray();

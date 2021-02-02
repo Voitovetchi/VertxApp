@@ -2,8 +2,6 @@ package com.Voitovetchi.books.domain;
 
 import lombok.*;
 
-import java.util.Date;
-
 @Setter
 @Getter
 @AllArgsConstructor
@@ -14,5 +12,5 @@ public class Book {
   private long isbn;
   private String title;
   private String author;
-  private Date pubDate;
+  private String pubdate;
 }
