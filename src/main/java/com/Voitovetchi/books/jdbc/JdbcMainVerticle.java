@@ -15,6 +15,8 @@ import io.vertx.ext.web.handler.StaticHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.LocalDate;
+
 public class JdbcMainVerticle extends AbstractVerticle {
 
   public static final Logger LOG = LoggerFactory.getLogger(JdbcMainVerticle.class);
@@ -52,7 +54,6 @@ public class JdbcMainVerticle extends AbstractVerticle {
   }
 
   private void getAll(Router books) {
-
     books.get("/books").handler(req -> {
       bookRepository.getAll().setHandler(ar -> {
         if (ar.failed()) {
@@ -70,16 +71,21 @@ public class JdbcMainVerticle extends AbstractVerticle {
   private void getBookByIsbn(Router books) {
     books.get("/books/:isbn").handler(req -> {
       final String isbn = req.pathParam("isbn");
-      final Book book = store.getByIsbn(isbn);
-      if (book != null) {
-        req.response()
-          .putHeader(HttpHeaders.CONTENT_TYPE, HttpHeaderValues.APPLICATION_JSON)
-          .end(JsonObject.mapFrom(book).encode());
-      } else {
-        req.response()
-          .putHeader(HttpHeaders.CONTENT_TYPE, HttpHeaderValues.APPLICATION_JSON)
-          .end(new JsonObject().put("error", "There is no book with such isbn").encode());
-      }
+      bookRepository.getByIsbn(isbn).setHandler(ar -> {
+        if (ar.failed()) {
+          req.fail(ar.cause());
+          return;
+        } else if (ar.result().isEmpty()) {
+          req.response()
+            .putHeader(HttpHeaders.CONTENT_TYPE, HttpHeaderValues.APPLICATION_JSON)
+            .end(new JsonObject().put("error", "There is no book with such isbn").encode());
+        }
+        else {
+          req.response()
+            .putHeader(HttpHeaders.CONTENT_TYPE, HttpHeaderValues.APPLICATION_JSON)
+            .end(ar.result().encode());
+        }
+      });
     });
   }
 
@@ -94,8 +100,7 @@ public class JdbcMainVerticle extends AbstractVerticle {
         } else {
           req.response()
             .putHeader(HttpHeaders.CONTENT_TYPE, HttpHeaderValues.APPLICATION_JSON)
-            .setStatusCode(HttpResponseStatus.CREATED.code())
-            .end(requestBody.encode());
+            .end(new JsonObject().put("message", "The book was successfully added").encode());
         }
       });
     });
@@ -105,17 +110,30 @@ public class JdbcMainVerticle extends AbstractVerticle {
     books.put("/books/:isbn").handler(req -> {
       final String isbn = req.pathParam("isbn");
       final JsonObject requestBody = req.getBodyAsJson();
-      final Book updatedBook = store.update(isbn, requestBody.mapTo(Book.class));
-      req.response()
-        .putHeader(HttpHeaders.CONTENT_TYPE, HttpHeaderValues.APPLICATION_JSON)
-        .end(JsonObject.mapFrom(updatedBook).encode());
+      System.out.println("Request body: " + requestBody);
+      bookRepository.update(isbn, requestBody.mapTo(Book.class))
+        .setHandler(ar -> {
+          if (ar.failed()) {
+            req.fail(ar.cause());
+            return;
+          }
+          if (ar.result() == null) {
+            req.response()
+              .putHeader(HttpHeaders.CONTENT_TYPE, HttpHeaderValues.APPLICATION_JSON)
+              .end(new JsonObject().put("error", "There is no book with such isbn").encode());
+          } else {
+            req.response()
+              .putHeader(HttpHeaders.CONTENT_TYPE, HttpHeaderValues.APPLICATION_JSON)
+              .end(new JsonObject().put("message", "The book was successfully updated").encode());
+          }
+        });
+
     });
   }
 
   private void deleteBook(Router books) {
     books.delete("/books/:isbn").handler(req -> {
       final String isbn = req.pathParam("isbn");
-      //final Book deletedBook = store.delete(isbn);
       bookRepository.delete(isbn).setHandler(ar -> {
         if (ar.failed()) {
           req.fail(ar.cause());
@@ -143,10 +161,6 @@ public class JdbcMainVerticle extends AbstractVerticle {
           .setStatusCode(HttpResponseStatus.BAD_REQUEST.code())
           .end(new JsonObject().put("error", event.failure().getMessage()).encode());
       }
-      /*event.response()
-        .putHeader(HttpHeaders.CONTENT_TYPE, HttpHeaderValues.APPLICATION_JSON)
-        .setStatusCode(HttpResponseStatus.INTERNAL_SERVER_ERROR.code())
-        .end(new JsonObject().put("error", event.failure().getMessage()).encode());*/
     });
   }
 
