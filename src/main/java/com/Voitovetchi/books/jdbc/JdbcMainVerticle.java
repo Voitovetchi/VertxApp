@@ -20,7 +20,6 @@ import java.time.LocalDate;
 public class JdbcMainVerticle extends AbstractVerticle {
 
   public static final Logger LOG = LoggerFactory.getLogger(JdbcMainVerticle.class);
-  private InMemoryBookStore store = new InMemoryBookStore();
   private JdbcBookRepository bookRepository;
 
   @Override
@@ -71,6 +70,7 @@ public class JdbcMainVerticle extends AbstractVerticle {
   private void getBookByIsbn(Router books) {
     books.get("/books/:isbn").handler(req -> {
       final String isbn = req.pathParam("isbn");
+
       bookRepository.getByIsbn(isbn).setHandler(ar -> {
         if (ar.failed()) {
           req.fail(ar.cause());
@@ -92,13 +92,14 @@ public class JdbcMainVerticle extends AbstractVerticle {
   private void createBook(Router books) {
     books.post("/books").handler(req -> {
       final JsonObject requestBody = req.getBodyAsJson();
-      System.out.println("Request body: " + requestBody);
+
       bookRepository.add(requestBody.mapTo(Book.class)).setHandler(ar -> {
         if (ar.failed()) {
           req.fail(ar.cause());
           return;
         } else {
           req.response()
+            .setStatusCode(HttpResponseStatus.CREATED.code())
             .putHeader(HttpHeaders.CONTENT_TYPE, HttpHeaderValues.APPLICATION_JSON)
             .end(new JsonObject().put("message", "The book was successfully added").encode());
         }
@@ -110,7 +111,7 @@ public class JdbcMainVerticle extends AbstractVerticle {
     books.put("/books/:isbn").handler(req -> {
       final String isbn = req.pathParam("isbn");
       final JsonObject requestBody = req.getBodyAsJson();
-      System.out.println("Request body: " + requestBody);
+
       bookRepository.update(isbn, requestBody.mapTo(Book.class))
         .setHandler(ar -> {
           if (ar.failed()) {
@@ -134,6 +135,7 @@ public class JdbcMainVerticle extends AbstractVerticle {
   private void deleteBook(Router books) {
     books.delete("/books/:isbn").handler(req -> {
       final String isbn = req.pathParam("isbn");
+
       bookRepository.delete(isbn).setHandler(ar -> {
         if (ar.failed()) {
           req.fail(ar.cause());

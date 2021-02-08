@@ -19,7 +19,6 @@ public class JdbcBookRepository {
     config.put("user", "postgres");
     config.put("password", "secret");
     sql = JDBCClient.createShared(vertx, config);
-
   }
 
   public Future<JsonArray> getAll() {
