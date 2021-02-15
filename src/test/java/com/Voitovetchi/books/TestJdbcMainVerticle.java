@@ -1,6 +1,7 @@
-package com.Voitovetchi.books;
+/*package com.Voitovetchi.books;
 
 import com.Voitovetchi.books.domain.Book;
+import com.Voitovetchi.books.jdbc.JdbcBookRepository;
 import com.Voitovetchi.books.jdbc.JdbcMainVerticle;
 import io.netty.handler.codec.http.HttpHeaderValues;
 import io.vertx.core.DeploymentOptions;
@@ -11,23 +12,21 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.junit5.Timeout;
 import io.vertx.junit5.VertxExtension;
 import io.vertx.junit5.VertxTestContext;
-import io.vertx.reactivex.ext.unit.Async;
-import io.vertx.reactivex.ext.unit.TestContext;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
-
 import java.io.IOException;
 import java.net.ServerSocket;
 
 @ExtendWith(VertxExtension.class)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
-public class TestMainVerticle {
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
+public class TestJdbcMainVerticle {
 
   private Vertx vertx;
   private int port;
   final private Book testBook = new Book(11111111, "testTitle", "testAuthor", "2000-01-01");
 
-  @BeforeEach
+  @BeforeAll
   public void setUp(VertxTestContext context) throws IOException {
     vertx = Vertx.vertx();
     ServerSocket socket = new ServerSocket(8888);
@@ -39,7 +38,7 @@ public class TestMainVerticle {
     vertx.deployVerticle(JdbcMainVerticle.class.getName(), options, context.succeeding(value -> context.checkpoint().flag()));
   }
 
-  @AfterEach
+  @AfterAll
   public void tearDown(VertxTestContext context) {
     vertx.close(context.succeeding(value -> context.checkpoint().flag()));
   }
@@ -62,6 +61,20 @@ public class TestMainVerticle {
 
   @Test
   @Order(3)
+  @Timeout(5000)
+  public void testDbConnection(VertxTestContext context) {
+    String url = "jdbc:postgresql://127.0.0.1/books";
+    String driver = "org.postgresql.Driver";
+    String user = "postgres";
+    String password = "secret";
+    JdbcBookRepository bookRepository = new JdbcBookRepository(vertx, url, driver, user, password);
+    Assertions.assertNotEquals(null, bookRepository.getSql());
+    context.completeNow();
+  }
+
+  @Test
+  @Order(4)
+  @Timeout(5000)
   public void testGetAll(VertxTestContext context) {
     vertx.createHttpClient().getNow(port, "localhost", "/books", response -> context.verify(() -> {
       Assertions.assertEquals(200, response.statusCode());
@@ -73,7 +86,8 @@ public class TestMainVerticle {
   }
 
   @Test
-  @Order(4)
+  @Order(5)
+  @Timeout(5000)
   public void testAdd(VertxTestContext context) {
     final String json = Json.encodePrettily(testBook);
     final String length = Integer.toString(json.length());
@@ -93,7 +107,8 @@ public class TestMainVerticle {
   }
 
   @Test
-  @Order(5)
+  @Order(6)
+  @Timeout(5000)
   public void testGetByIsbn(VertxTestContext context) {
     vertx.createHttpClient().getNow(port, "localhost", "/books/" + testBook.getIsbn(), response -> context.verify(() -> {
       Assertions.assertEquals(200, response.statusCode());
@@ -110,7 +125,8 @@ public class TestMainVerticle {
   }
 
   @Test
-  @Order(6)
+  @Order(7)
+  @Timeout(5000)
   public void testUpdate(VertxTestContext context) {
     final Book book = new Book(11111111, "UPDtestTitle", "UPDtestAuthor", "2000-01-30");
     final String json = Json.encodePrettily(book);
@@ -131,7 +147,8 @@ public class TestMainVerticle {
   }
 
   @Test
-  @Order(7)
+  @Order(8)
+  @Timeout(5000)
   public void testDelete(VertxTestContext context) {
     vertx.createHttpClient().delete(port, "localhost", "/books/" + testBook.getIsbn(), response -> context.verify(() -> {
       Assertions.assertEquals(200, response.statusCode());
@@ -143,4 +160,4 @@ public class TestMainVerticle {
     }))
     .end();
   }
-}
+}*/

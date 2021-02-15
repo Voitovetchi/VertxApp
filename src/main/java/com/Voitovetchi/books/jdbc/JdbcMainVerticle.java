@@ -1,7 +1,6 @@
 package com.Voitovetchi.books.jdbc;
 
 import com.Voitovetchi.books.domain.Book;
-import com.Voitovetchi.books.repo.InMemoryBookStore;
 import io.netty.handler.codec.http.HttpHeaderValues;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.AbstractVerticle;
@@ -15,8 +14,6 @@ import io.vertx.ext.web.handler.StaticHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.time.LocalDate;
-
 public class JdbcMainVerticle extends AbstractVerticle {
 
   public static final Logger LOG = LoggerFactory.getLogger(JdbcMainVerticle.class);
@@ -24,7 +21,11 @@ public class JdbcMainVerticle extends AbstractVerticle {
 
   @Override
   public void start(Promise<Void> startPromise) {
-    bookRepository = new JdbcBookRepository(vertx);
+    String url = "jdbc:postgresql://127.0.0.1/books";
+    String driver = "org.postgresql.Driver";
+    String user = "postgres";
+    String password = "secret";
+    bookRepository = new JdbcBookRepository(vertx, url, driver, user, password);
 
     Router books = Router.router(vertx);
     books.route().handler(BodyHandler.create());
@@ -53,8 +54,9 @@ public class JdbcMainVerticle extends AbstractVerticle {
   }
 
   private void getAll(Router books) {
+
     books.get("/books").handler(req -> {
-      bookRepository.getAll().setHandler(ar -> {
+      bookRepository.getAll().onComplete(ar -> {
         if (ar.failed()) {
           req.fail(ar.cause());
           return;
@@ -71,7 +73,7 @@ public class JdbcMainVerticle extends AbstractVerticle {
     books.get("/books/:isbn").handler(req -> {
       final String isbn = req.pathParam("isbn");
 
-      bookRepository.getByIsbn(isbn).setHandler(ar -> {
+      bookRepository.getByIsbn(isbn).onComplete(ar -> {
         if (ar.failed()) {
           req.fail(ar.cause());
           return;
@@ -93,7 +95,7 @@ public class JdbcMainVerticle extends AbstractVerticle {
     books.post("/books").handler(req -> {
       final JsonObject requestBody = req.getBodyAsJson();
 
-      bookRepository.add(requestBody.mapTo(Book.class)).setHandler(ar -> {
+      bookRepository.add(requestBody.mapTo(Book.class)).onComplete(ar -> {
         if (ar.failed()) {
           req.fail(ar.cause());
           return;
@@ -113,7 +115,7 @@ public class JdbcMainVerticle extends AbstractVerticle {
       final JsonObject requestBody = req.getBodyAsJson();
 
       bookRepository.update(isbn, requestBody.mapTo(Book.class))
-        .setHandler(ar -> {
+        .onComplete(ar -> {
           if (ar.failed()) {
             req.fail(ar.cause());
             return;
@@ -136,7 +138,7 @@ public class JdbcMainVerticle extends AbstractVerticle {
     books.delete("/books/:isbn").handler(req -> {
       final String isbn = req.pathParam("isbn");
 
-      bookRepository.delete(isbn).setHandler(ar -> {
+      bookRepository.delete(isbn).onComplete(ar -> {
         if (ar.failed()) {
           req.fail(ar.cause());
           return;

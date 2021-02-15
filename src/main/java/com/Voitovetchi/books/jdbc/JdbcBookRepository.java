@@ -2,64 +2,68 @@ package com.Voitovetchi.books.jdbc;
 
 import com.Voitovetchi.books.domain.Book;
 import io.vertx.core.Future;
+import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.jdbc.JDBCClient;
 import io.vertx.ext.sql.SQLClient;
+import lombok.Getter;
 
 import java.util.List;
 
+@Getter
 public class JdbcBookRepository {
   private SQLClient sql;
-  public JdbcBookRepository(final Vertx vertx) {
+
+  public JdbcBookRepository(final Vertx vertx, String url, String driver, String user, String password) {
     final JsonObject config = new JsonObject();
-    config.put("url", "jdbc:postgresql://127.0.0.1/books");
-    config.put("driver_class", "org.postgresql.Driver");
-    config.put("user", "postgres");
-    config.put("password", "secret");
+    config.put("url", url);
+    config.put("driver_class", driver);
+    config.put("user", user);
+    config.put("password", password);
     sql = JDBCClient.createShared(vertx, config);
+
   }
 
   public Future<JsonArray> getAll() {
-    final Future<JsonArray> getAllFuture = Future.future();
+    final Promise<JsonArray> getAllPromise = Promise.promise();
 
     sql.query("SELECT * FROM book", ar -> {
       if (ar.failed()) {
-        getAllFuture.fail(ar.cause());
-        return;
+        getAllPromise.fail(ar.cause());
       } else {
         final List<JsonObject> rows = ar.result().getRows();
         final JsonArray result = new JsonArray();
         rows.forEach(result::add);
-        getAllFuture.complete(result);
+        getAllPromise.complete(result);
       }
     });
 
-    return getAllFuture;
+    return getAllPromise.future();
   }
 
   public Future<JsonArray> getByIsbn(String isbn) {
-    final Future<JsonArray> getByIsbnFuture = Future.future();
+    final Promise<JsonArray> getByIsbnPromise = Promise.promise();
     final JsonArray params = new JsonArray().add(Integer.parseInt(isbn));
 
     sql.queryWithParams("SELECT * FROM book WHERE isbn=?", params,  ar -> {
       if (ar.failed()) {
-        getByIsbnFuture.fail(ar.cause());
+        getByIsbnPromise.fail(ar.cause());
         return;
       } else {
         final List<JsonObject> rows = ar.result().getRows();
         final JsonArray result = new JsonArray();
         rows.forEach(result::add);
-        getByIsbnFuture.complete(result);
+        getByIsbnPromise.complete(result);
       }
     });
 
-    return getByIsbnFuture;
+    return getByIsbnPromise.future();
   }
 
   public Future<Void> add(Book book) {
-    final Future<Void> added = Future.future();
+    final Promise<Void> add = Promise.promise();
     final JsonArray params = new JsonArray()
       .add(book.getIsbn())
       .add(book.getTitle())
@@ -68,22 +72,22 @@ public class JdbcBookRepository {
 
     sql.updateWithParams("INSERT INTO book VALUES (?, ?, ?, ?)", params, ar -> {
       if (ar.failed()) {
-        added.fail(ar.cause());
+        add.fail(ar.cause());
         return;
       }
       else if (ar.result().getUpdated() != 1) {
-        added.fail(new IllegalStateException("Wrong update count on insert" + ar.cause()));
+        add.fail(new IllegalStateException("Wrong update count on insert" + ar.cause()));
         return;
       } else {
-        added.complete();
+        add.complete();
       }
     });
 
-    return added;
+    return add.future();
   }
 
   public Future<String> update(String isbn, Book book) {
-    final Future<String> updated = Future.future();
+    final Promise<String> update = Promise.promise();
     final JsonArray params = new JsonArray()
       .add(book.getTitle())
       .add(book.getAuthor())
@@ -92,38 +96,38 @@ public class JdbcBookRepository {
 
     sql.updateWithParams("UPDATE book SET title=?, author=?, pubdate=? WHERE isbn=?", params, ar -> {
       if (ar.failed()) {
-        updated.fail(ar.cause());
+        update.fail(ar.cause());
         return;
       }
       if (ar.result().getUpdated() == 0) {
-        updated.complete();
+        update.complete();
         return;
       } else {
-        updated.complete(isbn);
+        update.complete(isbn);
       }
     });
 
-    return updated;
+    return update.future();
   }
 
   public Future<String> delete(String isbn) {
-    final Future<String> deleted = Future.future();
+    final Promise<String> delete = Promise.promise();
     final JsonArray params = new JsonArray().add(Integer.parseInt(isbn));
 
     sql.updateWithParams("DELETE FROM book WHERE isbn=?", params, ar -> {
       if (ar.failed()) {
-        deleted.fail(ar.cause());
+        delete.fail(ar.cause());
         return;
       }
       if (ar.result().getUpdated() == 0) {
-        deleted.complete();
+        delete.complete();
         return;
       } else {
-        deleted.complete(isbn);
+        delete.complete(isbn);
       }
     });
 
-    return deleted;
+    return delete.future();
   }
 
 
