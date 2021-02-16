@@ -21,9 +21,8 @@
 
     <main.verticle>com.Voitovetchi.books.MainVerticle</main.verticle>
     <launcher.class>io.vertx.core.Launcher</launcher.class>
-    <slf4j-api.version>1.7.25</slf4j-api.version>
-    <postgresql.jdbc.version>42.2.12</postgresql.jdbc.version>
     <flyway.version>6.3.3</flyway.version>
+    <oracle.version>21.1.0.0</oracle.version>
   </properties>
 
   <dependencyManagement>
@@ -36,20 +35,19 @@
         <scope>import</scope>
       </dependency>
       <dependency>
-        <groupId>org.apache.logging.log4j</groupId>
-        <artifactId>log4j-bom</artifactId>
-        <version>2.14.0</version>
-        <scope>import</scope>
+        <groupId>com.oracle.database.jdbc</groupId>
+        <artifactId>ojdbc-bom</artifactId>
+        <version>19.7.0.0</version>
         <type>pom</type>
+        <scope>import</scope>
       </dependency>
     </dependencies>
   </dependencyManagement>
 
   <dependencies>
     <dependency>
-      <groupId>org.postgresql</groupId>
-      <artifactId>postgresql</artifactId>
-      <version>${postgresql.jdbc.version}</version>
+      <groupId>com.oracle.database.jdbc</groupId>
+      <artifactId>ojdbc8</artifactId>
     </dependency>
     <dependency>
       <groupId>io.vertx</groupId>
@@ -95,23 +93,6 @@
     </dependency>
 
     <dependency>
-      <groupId>org.apache.logging.log4j</groupId>
-      <artifactId>log4j-api</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.logging.log4j</groupId>
-      <artifactId>log4j-core</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.logging.log4j</groupId>
-      <artifactId>log4j-slf4j-impl</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.slf4j</groupId>
-      <artifactId>slf4j-api</artifactId>
-      <version>${slf4j-api.version}</version>
-    </dependency>
-    <dependency>
       <groupId>com.fasterxml.jackson.core</groupId>
       <artifactId>jackson-databind</artifactId>
       <version>2.9.10.3</version>
@@ -126,15 +107,15 @@
         <artifactId>flyway-maven-plugin</artifactId>
         <version>${flyway.version}</version>
         <configuration>
-          <url>jdbc:postgresql://127.0.0.1/books</url>
-          <user>postgres</user>
-          <password>secret</password>
+          <url>jdbc:oracle:thin@localhost:1521/books</url>
+          <user>system</user>
+          <password>voitdb</password>
         </configuration>
         <dependencies>
           <dependency>
-            <groupId>org.postgresql</groupId>
-            <artifactId>postgresql</artifactId>
-            <version>${postgresql.jdbc.version}</version>
+            <groupId>com.oracle.database.jdbc</groupId>
+            <artifactId>ojdbc11-production</artifactId>
+            <version>${oracle.version}</version>
           </dependency>
         </dependencies>
       </plugin>

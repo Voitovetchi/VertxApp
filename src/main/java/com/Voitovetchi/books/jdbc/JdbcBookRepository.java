@@ -22,14 +22,14 @@ public class JdbcBookRepository {
     config.put("driver_class", driver);
     config.put("user", user);
     config.put("password", password);
-    sql = JDBCClient.createShared(vertx, config);
 
+    sql = JDBCClient.createShared(vertx, config);
   }
 
   public Future<JsonArray> getAll() {
     final Promise<JsonArray> getAllPromise = Promise.promise();
 
-    sql.query("SELECT * FROM book", ar -> {
+    sql.query("SELECT isbn, title, author, TO_CHAR(pubdate, 'dd-mm-yyyy') as PUBDATE FROM book", ar -> {
       if (ar.failed()) {
         getAllPromise.fail(ar.cause());
       } else {
@@ -47,7 +47,7 @@ public class JdbcBookRepository {
     final Promise<JsonArray> getByIsbnPromise = Promise.promise();
     final JsonArray params = new JsonArray().add(Integer.parseInt(isbn));
 
-    sql.queryWithParams("SELECT * FROM book WHERE isbn=?", params,  ar -> {
+    sql.queryWithParams("SELECT isbn, title, author, TO_CHAR(pubdate, 'dd-mm-yyyy') as PUBDATE FROM book WHERE isbn=?", params,  ar -> {
       if (ar.failed()) {
         getByIsbnPromise.fail(ar.cause());
         return;

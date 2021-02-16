@@ -11,20 +11,18 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.handler.BodyHandler;
 import io.vertx.ext.web.handler.StaticHandler;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class JdbcMainVerticle extends AbstractVerticle {
 
-  public static final Logger LOG = LoggerFactory.getLogger(JdbcMainVerticle.class);
   private JdbcBookRepository bookRepository;
 
   @Override
   public void start(Promise<Void> startPromise) {
-    String url = "jdbc:postgresql://127.0.0.1/books";
-    String driver = "org.postgresql.Driver";
-    String user = "postgres";
-    String password = "secret";
+    String url = "jdbc:oracle:thin:@localhost:1521/XEPDB1";
+    String driver = "oracle.jdbc.driver.OracleDriver";
+    String user = "books_admin";
+    String password = "password";
+
     bookRepository = new JdbcBookRepository(vertx, url, driver, user, password);
 
     Router books = Router.router(vertx);
@@ -46,7 +44,7 @@ public class JdbcMainVerticle extends AbstractVerticle {
     vertx.createHttpServer().requestHandler(books).listen(8888, http -> {
       if (http.succeeded()) {
         startPromise.complete();
-        LOG.info("HTTP server started on port 8888");
+        System.out.println("HTTP server started on port 8888");
       } else {
         startPromise.fail(http.cause());
       }
@@ -93,7 +91,7 @@ public class JdbcMainVerticle extends AbstractVerticle {
 
   private void createBook(Router books) {
     books.post("/books").handler(req -> {
-      final JsonObject requestBody = req.getBodyAsJson();
+      final JsonObject requestBody = getJsonObject(req);
 
       bookRepository.add(requestBody.mapTo(Book.class)).onComplete(ar -> {
         if (ar.failed()) {
@@ -112,7 +110,7 @@ public class JdbcMainVerticle extends AbstractVerticle {
   private void updateBook(Router books) {
     books.put("/books/:isbn").handler(req -> {
       final String isbn = req.pathParam("isbn");
-      final JsonObject requestBody = req.getBodyAsJson();
+      final JsonObject requestBody = getJsonObject(req);
 
       bookRepository.update(isbn, requestBody.mapTo(Book.class))
         .onComplete(ar -> {
@@ -132,6 +130,15 @@ public class JdbcMainVerticle extends AbstractVerticle {
         });
 
     });
+  }
+
+  private JsonObject getJsonObject(io.vertx.ext.web.RoutingContext req) {
+    final JsonObject requestBody = new JsonObject()
+      .put("isbn", req.getBodyAsJson().getLong("ISBN"))
+      .put("title", req.getBodyAsJson().getString("TITLE"))
+      .put("author", req.getBodyAsJson().getString("AUTHOR"))
+      .put("pubdate", req.getBodyAsJson().getString("PUBDATE"));
+    return requestBody;
   }
 
   private void deleteBook(Router books) {
@@ -158,7 +165,7 @@ public class JdbcMainVerticle extends AbstractVerticle {
 
   private void registerErrorHandler(Router books) {
     books.errorHandler(500, event -> {
-      LOG.error("Failed ", event.failure());
+      System.err.println("Failed " + event.failure());
       if (event.failure() instanceof IllegalArgumentException) {
         event.response()
           .putHeader(HttpHeaders.CONTENT_TYPE, HttpHeaderValues.APPLICATION_JSON)

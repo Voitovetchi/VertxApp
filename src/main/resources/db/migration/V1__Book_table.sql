@@ -1,6 +1,7 @@
 CREATE TABLE book (
-  ISBN numeric PRIMARY KEY,
-  TITLE varchar(100) NOT NULL,
-  AUTHOR varchar(100) NOT NULL,
-  PUBDATE date NOT NULL
+  isbn NUMERIC(10),
+  title VARCHAR2(50) NOT NULL,
+  author VARCHAR2(50) NOT NULL,
+  pubdate DATE NOT NULL,
+  PRIMARY KEY (isbn)
 );
