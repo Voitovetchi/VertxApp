@@ -9,6 +9,7 @@ import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.Router;
+import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.BodyHandler;
 import io.vertx.ext.web.handler.StaticHandler;
 
@@ -52,19 +53,16 @@ public class JdbcMainVerticle extends AbstractVerticle {
   }
 
   private void getAll(Router books) {
-
-    books.get("/books").handler(req -> {
+    books.get("/books").handler(req ->
       bookRepository.getAll().onComplete(ar -> {
-        if (ar.failed()) {
-          req.fail(ar.cause());
-          return;
-        } else {
-          req.response()
-            .putHeader(HttpHeaders.CONTENT_TYPE, HttpHeaderValues.APPLICATION_JSON)
-            .end(ar.result().encode());
-        }
-      });
-    });
+      if (ar.failed()) {
+        req.fail(ar.cause());
+      } else {
+        req.response()
+          .putHeader(HttpHeaders.CONTENT_TYPE, HttpHeaderValues.APPLICATION_JSON)
+          .end(ar.result().encode());
+      }
+    }));
   }
 
   private void getBookByIsbn(Router books) {
@@ -74,11 +72,8 @@ public class JdbcMainVerticle extends AbstractVerticle {
       bookRepository.getByIsbn(isbn).onComplete(ar -> {
         if (ar.failed()) {
           req.fail(ar.cause());
-          return;
         } else if (ar.result().isEmpty()) {
-          req.response()
-            .putHeader(HttpHeaders.CONTENT_TYPE, HttpHeaderValues.APPLICATION_JSON)
-            .end(new JsonObject().put("error", "There is no book with such isbn").encode());
+          getMessage(req, "error", "There is no book with such isbn", HttpResponseStatus.BAD_REQUEST.code());
         }
         else {
           req.response()
@@ -93,17 +88,14 @@ public class JdbcMainVerticle extends AbstractVerticle {
     books.post("/books").handler(req -> {
       final JsonObject requestBody = getJsonObject(req);
 
-      bookRepository.add(requestBody.mapTo(Book.class)).onComplete(ar -> {
-        if (ar.failed()) {
-          req.fail(ar.cause());
-          return;
-        } else {
-          req.response()
-            .setStatusCode(HttpResponseStatus.CREATED.code())
-            .putHeader(HttpHeaders.CONTENT_TYPE, HttpHeaderValues.APPLICATION_JSON)
-            .end(new JsonObject().put("message", "The book was successfully added").encode());
-        }
-      });
+      bookRepository.add(requestBody.mapTo(Book.class))
+        .onComplete(ar -> {
+          if (ar.failed()) {
+            req.fail(ar.cause());
+          } else {
+            getMessage(req, "message", "Book was successfully added", HttpResponseStatus.CREATED.code());
+          }
+        });
     });
   }
 
@@ -116,29 +108,14 @@ public class JdbcMainVerticle extends AbstractVerticle {
         .onComplete(ar -> {
           if (ar.failed()) {
             req.fail(ar.cause());
-            return;
-          }
-          if (ar.result() == null) {
-            req.response()
-              .putHeader(HttpHeaders.CONTENT_TYPE, HttpHeaderValues.APPLICATION_JSON)
-              .end(new JsonObject().put("error", "There is no book with such isbn").encode());
+          } else if (ar.result() == null) {
+            getMessage(req, "error", "There is no book with such isbn", HttpResponseStatus.BAD_REQUEST.code());
           } else {
-            req.response()
-              .putHeader(HttpHeaders.CONTENT_TYPE, HttpHeaderValues.APPLICATION_JSON)
-              .end(new JsonObject().put("message", "The book was successfully updated").encode());
+            getMessage(req, "message", "Book was successfully updated", HttpResponseStatus.ACCEPTED.code());
           }
         });
 
     });
-  }
-
-  private JsonObject getJsonObject(io.vertx.ext.web.RoutingContext req) {
-    final JsonObject requestBody = new JsonObject()
-      .put("isbn", req.getBodyAsJson().getLong("ISBN"))
-      .put("title", req.getBodyAsJson().getString("TITLE"))
-      .put("author", req.getBodyAsJson().getString("AUTHOR"))
-      .put("pubdate", req.getBodyAsJson().getString("PUBDATE"));
-    return requestBody;
   }
 
   private void deleteBook(Router books) {
@@ -148,16 +125,10 @@ public class JdbcMainVerticle extends AbstractVerticle {
       bookRepository.delete(isbn).onComplete(ar -> {
         if (ar.failed()) {
           req.fail(ar.cause());
-          return;
-        }
-        if (ar.result() == null) {
-          req.response()
-            .putHeader(HttpHeaders.CONTENT_TYPE, HttpHeaderValues.APPLICATION_JSON)
-            .end(new JsonObject().put("error", "There is no book with such isbn").encode());
+        } else if (ar.result() == null) {
+          getMessage(req, "error", "There is no book with such isbn", HttpResponseStatus.BAD_REQUEST.code());
         } else {
-          req.response()
-            .putHeader(HttpHeaders.CONTENT_TYPE, HttpHeaderValues.APPLICATION_JSON)
-            .end(new JsonObject().put("message", "The book was successfully deleted").encode());
+          getMessage(req, "message", "Book was successfully deleted", HttpResponseStatus.ACCEPTED.code());
         }
       });
     });
@@ -165,14 +136,35 @@ public class JdbcMainVerticle extends AbstractVerticle {
 
   private void registerErrorHandler(Router books) {
     books.errorHandler(500, event -> {
-      System.err.println("Failed " + event.failure());
-      if (event.failure() instanceof IllegalArgumentException) {
-        event.response()
-          .putHeader(HttpHeaders.CONTENT_TYPE, HttpHeaderValues.APPLICATION_JSON)
-          .setStatusCode(HttpResponseStatus.BAD_REQUEST.code())
-          .end(new JsonObject().put("error", event.failure().getMessage()).encode());
+      if (event.failure() instanceof NullPointerException) {
+        getMessage(event, "error", "Body is empty", HttpResponseStatus.BAD_REQUEST.code());
+      } else {
+        getMessage(event, "error", event.failure().getMessage(), HttpResponseStatus.BAD_REQUEST.code());
       }
     });
+  }
+
+  private JsonObject getJsonObject(RoutingContext req) {
+      if (req.getBodyAsJson().getLong("ISBN") == null
+          || req.getBodyAsJson().getString("TITLE") == null
+          || req.getBodyAsJson().getString("AUTHOR") == null
+          || req.getBodyAsJson().getString("PUBDATE") == null
+      ) {
+        throw new IllegalArgumentException("All field must be felt");
+      }
+      return new JsonObject()
+        .put("isbn", req.getBodyAsJson().getLong("ISBN"))
+        .put("title", req.getBodyAsJson().getString("TITLE"))
+        .put("author", req.getBodyAsJson().getString("AUTHOR"))
+        .put("pubdate", req.getBodyAsJson().getString("PUBDATE"));
+
+  }
+
+  private void getMessage(RoutingContext req, String key, String message, int statusCode) {
+    req.response()
+      .setStatusCode(statusCode)
+      .putHeader(HttpHeaders.CONTENT_TYPE, HttpHeaderValues.APPLICATION_JSON)
+      .end(new JsonObject().put(key, message).encode());
   }
 
   public static void main(String[] args) {
