@@ -86,7 +86,7 @@ public class JdbcMainVerticle extends AbstractVerticle {
 
   private void createBook(Router books) {
     books.post("/books").handler(req -> {
-      final JsonObject requestBody = getJsonObject(req);
+      final JsonObject requestBody = getJsonArrayWithData(req);
 
       bookRepository.add(requestBody.mapTo(Book.class))
         .onComplete(ar -> {
@@ -102,7 +102,7 @@ public class JdbcMainVerticle extends AbstractVerticle {
   private void updateBook(Router books) {
     books.put("/books/:isbn").handler(req -> {
       final String isbn = req.pathParam("isbn");
-      final JsonObject requestBody = getJsonObject(req);
+      final JsonObject requestBody = getJsonArrayWithData(req);
 
       bookRepository.update(isbn, requestBody.mapTo(Book.class))
         .onComplete(ar -> {
@@ -144,7 +144,7 @@ public class JdbcMainVerticle extends AbstractVerticle {
     });
   }
 
-  private JsonObject getJsonObject(RoutingContext req) {
+  private JsonObject getJsonArrayWithData(RoutingContext req) {
       if (req.getBodyAsJson().getLong("ISBN") == null
           || req.getBodyAsJson().getString("TITLE") == null
           || req.getBodyAsJson().getString("AUTHOR") == null
