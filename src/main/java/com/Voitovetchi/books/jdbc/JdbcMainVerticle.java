@@ -1,5 +1,6 @@
 package com.Voitovetchi.books.jdbc;
 
+import com.Voitovetchi.books.domain.Author;
 import com.Voitovetchi.books.domain.Book;
 import io.netty.handler.codec.http.HttpHeaderValues;
 import io.netty.handler.codec.http.HttpResponseStatus;
@@ -7,6 +8,7 @@ import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpHeaders;
+import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
@@ -53,16 +55,17 @@ public class JdbcMainVerticle extends AbstractVerticle {
   }
 
   private void getAll(Router books) {
-    books.get("/books").handler(req ->
+    books.get("/books").handler(req -> {
       bookRepository.getAll().onComplete(ar -> {
-      if (ar.failed()) {
-        req.fail(ar.cause());
-      } else {
-        req.response()
-          .putHeader(HttpHeaders.CONTENT_TYPE, HttpHeaderValues.APPLICATION_JSON)
-          .end(ar.result().encode());
-      }
-    }));
+        if (ar.failed()) {
+          req.fail(ar.cause());
+        } else {
+          req.response()
+            .putHeader(HttpHeaders.CONTENT_TYPE, HttpHeaderValues.APPLICATION_JSON)
+            .end(ar.result().encode());
+        }
+      });
+    });
   }
 
   private void getBookByIsbn(Router books) {
@@ -86,9 +89,8 @@ public class JdbcMainVerticle extends AbstractVerticle {
 
   private void createBook(Router books) {
     books.post("/books").handler(req -> {
-      final JsonObject requestBody = getJsonArrayWithData(req);
-
-      bookRepository.add(requestBody.mapTo(Book.class))
+      Book book = getBookFromJsonObject(req.getBodyAsJson());
+      bookRepository.add(book)
         .onComplete(ar -> {
           if (ar.failed()) {
             req.fail(ar.cause());
@@ -102,9 +104,8 @@ public class JdbcMainVerticle extends AbstractVerticle {
   private void updateBook(Router books) {
     books.put("/books/:isbn").handler(req -> {
       final String isbn = req.pathParam("isbn");
-      final JsonObject requestBody = getJsonArrayWithData(req);
 
-      bookRepository.update(isbn, requestBody.mapTo(Book.class))
+      bookRepository.update(isbn, getBookFromJsonObject(req.getBodyAsJson()))
         .onComplete(ar -> {
           if (ar.failed()) {
             req.fail(ar.cause());
@@ -144,20 +145,24 @@ public class JdbcMainVerticle extends AbstractVerticle {
     });
   }
 
-  private JsonObject getJsonArrayWithData(RoutingContext req) {
-      if (req.getBodyAsJson().getLong("ISBN") == null
-          || req.getBodyAsJson().getString("TITLE") == null
-          || req.getBodyAsJson().getString("AUTHOR") == null
-          || req.getBodyAsJson().getString("PUBDATE") == null
-      ) {
-        throw new IllegalArgumentException("All field must be felt");
-      }
-      return new JsonObject()
-        .put("isbn", req.getBodyAsJson().getLong("ISBN"))
-        .put("title", req.getBodyAsJson().getString("TITLE"))
-        .put("author", req.getBodyAsJson().getString("AUTHOR"))
-        .put("pubdate", req.getBodyAsJson().getString("PUBDATE"));
+  private Book getBookFromJsonObject(JsonObject body) {
 
+    final Book book = new Book(body.getLong("ISBN"), body.getString("TITLE"), body.getString("PUBDATE"));
+
+    final JsonArray authors = body.getJsonArray("AUTHORS");
+
+    for(int i = 0; i < authors.size(); i++) {
+      final Author author = new Author(
+        authors.getJsonObject(i).getLong("IDNP"),
+        authors.getJsonObject(i).getString("NAME"),
+        authors.getJsonObject(i).getString("SURNAME"),
+        authors.getJsonObject(i).getString("BIRTHDATE")
+        );
+
+      book.getAuthors().add(author);
+    }
+
+    return book;
   }
 
   private void getMessage(RoutingContext req, String key, String message, int statusCode) {

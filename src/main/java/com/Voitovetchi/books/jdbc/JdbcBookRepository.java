@@ -1,6 +1,8 @@
 package com.Voitovetchi.books.jdbc;
 
+import com.Voitovetchi.books.domain.Author;
 import com.Voitovetchi.books.domain.Book;
+import com.Voitovetchi.books.services.SqlQueries;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
@@ -12,20 +14,7 @@ import io.vertx.ext.sql.SQLClient;
 import java.util.List;
 
 public class JdbcBookRepository {
-  private static final String GET_ALL_BOOKS_INFO = "select b.isbn, title, TO_CHAR(pubdate, 'dd-mm-yyyy') as pubdate, a.idnp, name, surname, TO_CHAR(birthdate, 'dd-mm-yyyy') as birthdate from BOOKS_ADMIN.book b " +
-    "inner join BOOKS_ADMIN.book_author ba " +
-    "on b.isbn = ba.isbn " +
-    "inner join BOOKS_ADMIN.author a " +
-    "on ba.idnp = a.idnp";
-  private static final String GET_BOOK_BY_ISBN = "select b.isbn, title, TO_CHAR(pubdate, 'dd-mm-yyyy') as pubdate, a.idnp, name, surname, TO_CHAR(birthdate, 'dd-mm-yyyy') as birthdate from BOOKS_ADMIN.book b " +
-    "inner join BOOKS_ADMIN.book_author ba " +
-    "on b.isbn = ba.isbn " +
-    "inner join BOOKS_ADMIN.author a " +
-    "on ba.idnp = a.idnp " +
-    "where b.isbn=?";
-  private static final String INSERT_BOOK = "INSERT INTO book VALUES (?, ?, ?, ?)";
-  private static final String UPDATE_BOOK = "UPDATE book SET title=?, author=?, pubdate=? WHERE isbn=?";
-  private static final String DELETE_BOOK = "DELETE FROM book WHERE isbn=?";
+
   private final SQLClient sql;
 
   public JdbcBookRepository(final Vertx vertx, String url, String driver, String user, String password) {
@@ -41,7 +30,7 @@ public class JdbcBookRepository {
   public Future<JsonArray> getAll() {
     final Promise<JsonArray> getAllPromise = Promise.promise();
 
-    sql.query(GET_ALL_BOOKS_INFO, ar -> {
+    sql.query(SqlQueries.GET_ALL_BOOKS, ar -> {
       if (ar.failed()) {
         getAllPromise.fail(ar.cause());
       }
@@ -60,7 +49,7 @@ public class JdbcBookRepository {
     final Promise<JsonObject> getByIsbnPromise = Promise.promise();
     final JsonArray params = new JsonArray().add(Long.parseLong(isbn));
 
-    sql.queryWithParams(GET_BOOK_BY_ISBN, params, ar -> {
+    sql.queryWithParams(SqlQueries.GET_BOOK_BY_ISBN, params, ar -> {
       if (ar.failed()) {
         getByIsbnPromise.fail(ar.cause());
       }
@@ -77,34 +66,31 @@ public class JdbcBookRepository {
   }
 
   public Future<Void> add(Book book) {
-    final Promise<Void> add = Promise.promise();
-    final JsonArray params = new JsonArray()
-      .add(book.getIsbn())
-      .add(book.getTitle())
-      .add(book.getAuthor())
-      .add(book.getPubdate());
+    final Promise<Void> addBook = Promise.promise();
 
-    sql.updateWithParams(INSERT_BOOK, params, ar -> {
+    final JsonArray params = getParams(book);
+
+    System.out.println(SqlQueries.getInsertStatement(book.getAuthors().size()));
+    System.out.println(params);
+    sql.queryWithParams(SqlQueries.getInsertStatement(book.getAuthors().size()), params, ar -> {
       if (ar.failed()) {
-        add.fail(ar.cause());
+        addBook.fail(ar.cause());
       }
       else {
-        add.complete();
+        addBook.complete();
       }
     });
-
-    return add.future();
+    return addBook.future();
   }
 
   public Future<String> update(String isbn, Book book) {
     final Promise<String> update = Promise.promise();
     final JsonArray params = new JsonArray()
       .add(book.getTitle())
-      .add(book.getAuthor())
       .add(book.getPubdate())
       .add(Integer.parseInt(isbn));
 
-    sql.updateWithParams(UPDATE_BOOK, params, ar -> {
+    sql.updateWithParams(SqlQueries.UPDATE_BOOK, params, ar -> {
       if (ar.failed()) {
         update.fail(ar.cause());
       }
@@ -123,7 +109,7 @@ public class JdbcBookRepository {
     final Promise<String> delete = Promise.promise();
     final JsonArray params = new JsonArray().add(Integer.parseInt(isbn));
 
-    sql.updateWithParams(DELETE_BOOK, params, ar -> {
+    sql.updateWithParams(SqlQueries.DELETE_BOOK, params, ar -> {
       if (ar.failed()) {
         delete.fail(ar.cause());
       }
@@ -139,7 +125,6 @@ public class JdbcBookRepository {
   }
 
   private JsonObject getBookWithAuthors(List<JsonObject> rows) {
-    //final JsonArray result = new JsonArray();
     JsonArray authors = new JsonArray();
 
     for (JsonObject row : rows) {
@@ -156,6 +141,24 @@ public class JdbcBookRepository {
       .put("TITLE", rows.get(0).getString("TITLE"))
       .put("PUBDATE", rows.get(0).getString("PUBDATE"))
       .put("AUTHORS", authors);
+  }
+
+  private JsonArray getParams(Book book) {
+    final JsonArray params = new JsonArray()
+      .add(book.getIsbn())
+      .add(book.getTitle())
+      .add(book.getPubdate());
+
+    for (Author author: book.getAuthors()) {
+      params
+        .add(author.getName())
+        .add(author.getSurname())
+        .add(author.getBirthdate())
+        .add(author.getIdnp())
+        .add(book.getIsbn())
+        .add(author.getIdnp());
+    }
+    return params;
   }
 
 }
