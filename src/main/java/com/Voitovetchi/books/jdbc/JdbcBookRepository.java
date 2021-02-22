@@ -11,6 +11,7 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.ext.jdbc.JDBCClient;
 import io.vertx.ext.sql.SQLClient;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class JdbcBookRepository {
@@ -36,17 +37,15 @@ public class JdbcBookRepository {
       }
       else {
         final List<JsonObject> rows = ar.result().getRows();
-        final JsonArray result = new JsonArray();
-        rows.forEach(result::add);
-        getAllPromise.complete(result);
+        getAllPromise.complete(getAllBooksWithAuthors(rows));
       }
     });
 
     return getAllPromise.future();
   }
 
-  public Future<JsonObject> getByIsbn(String isbn) {
-    final Promise<JsonObject> getByIsbnPromise = Promise.promise();
+  public Future<JsonArray> getByIsbn(String isbn) {
+    final Promise<JsonArray> getByIsbnPromise = Promise.promise();
     final JsonArray params = new JsonArray().add(Long.parseLong(isbn));
 
     sql.queryWithParams(SqlQueries.GET_BOOK_BY_ISBN, params, ar -> {
@@ -54,11 +53,11 @@ public class JdbcBookRepository {
         getByIsbnPromise.fail(ar.cause());
       }
       else if (ar.result().getRows().size() == 0){
-        getByIsbnPromise.complete(new JsonObject());
+        getByIsbnPromise.complete(new JsonArray());
       }
       else {
         final List<JsonObject> rows = ar.result().getRows();
-        getByIsbnPromise.complete(getBookWithAuthors(rows));
+        getByIsbnPromise.complete(getAllBooksWithAuthors(rows));
       }
     });
 
@@ -68,10 +67,7 @@ public class JdbcBookRepository {
   public Future<Void> add(Book book) {
     final Promise<Void> addBook = Promise.promise();
 
-    final JsonArray params = getParams(book);
-
-    System.out.println(SqlQueries.getInsertStatement(book.getAuthors().size()));
-    System.out.println(params);
+    final JsonArray params = getParamsForAddingBook(book);
     sql.queryWithParams(SqlQueries.getInsertStatement(book.getAuthors().size()), params, ar -> {
       if (ar.failed()) {
         addBook.fail(ar.cause());
@@ -80,6 +76,7 @@ public class JdbcBookRepository {
         addBook.complete();
       }
     });
+
     return addBook.future();
   }
 
@@ -107,7 +104,7 @@ public class JdbcBookRepository {
 
   public Future<String> delete(String isbn) {
     final Promise<String> delete = Promise.promise();
-    final JsonArray params = new JsonArray().add(Integer.parseInt(isbn));
+    final JsonArray params = new JsonArray().add(Long.parseLong(isbn));
 
     sql.updateWithParams(SqlQueries.DELETE_BOOK, params, ar -> {
       if (ar.failed()) {
@@ -124,26 +121,43 @@ public class JdbcBookRepository {
     return delete.future();
   }
 
-  private JsonObject getBookWithAuthors(List<JsonObject> rows) {
-    JsonArray authors = new JsonArray();
+  private JsonArray getAllBooksWithAuthors(List<JsonObject> books) {
+    final JsonArray booksWithAuthors = new JsonArray();
+    final List<Long> added = new ArrayList<>();
 
-    for (JsonObject row : rows) {
-      JsonObject author = new JsonObject()
-        .put("IDNP", row.getLong("IDNP"))
-        .put("NAME", row.getString("NAME"))
-        .put("SURNAME", row.getString("SURNAME"))
-        .put("BIRTHDATE", row.getString("BIRTHDATE"));
-      authors.add(author);
+    for (JsonObject book : books) {
+      final JsonArray authors = new JsonArray();
+      final Long currentBookIsbn = book.getLong("ISBN");
+
+      for (JsonObject otherBook : books) {
+        if (otherBook.getLong("ISBN").equals(currentBookIsbn)
+          && !added.contains(currentBookIsbn)
+        ) {
+          JsonObject author = new JsonObject()
+            .put("IDNP", otherBook.getLong("IDNP"))
+            .put("NAME", otherBook.getString("NAME"))
+            .put("SURNAME", otherBook.getString("SURNAME"))
+            .put("BIRTHDATE", otherBook.getString("BIRTHDATE"));
+          authors.add(author);
+        }
+      }
+
+      if (!added.contains(currentBookIsbn)) {
+        final JsonObject bookWithAuthor = new JsonObject()
+          .put("ISBN", currentBookIsbn)
+          .put("TITLE", book.getString("TITLE"))
+          .put("PUBDATE", book.getString("PUBDATE"))
+          .put("AUTHORS", authors);
+
+        booksWithAuthors.add(bookWithAuthor);
+        added.add(currentBookIsbn);
+      }
     }
 
-    return new JsonObject()
-      .put("ISBN", rows.get(0).getLong("ISBN"))
-      .put("TITLE", rows.get(0).getString("TITLE"))
-      .put("PUBDATE", rows.get(0).getString("PUBDATE"))
-      .put("AUTHORS", authors);
+    return booksWithAuthors;
   }
 
-  private JsonArray getParams(Book book) {
+  private JsonArray getParamsForAddingBook(Book book) {
     final JsonArray params = new JsonArray()
       .add(book.getIsbn())
       .add(book.getTitle())

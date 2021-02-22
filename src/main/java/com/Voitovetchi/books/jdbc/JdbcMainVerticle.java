@@ -36,7 +36,7 @@ public class JdbcMainVerticle extends AbstractVerticle {
 
     getBookByIsbn(books);
 
-    createBook(books);
+    addBook(books);
 
     updateBook(books);
 
@@ -87,7 +87,7 @@ public class JdbcMainVerticle extends AbstractVerticle {
     });
   }
 
-  private void createBook(Router books) {
+  private void addBook(Router books) {
     books.post("/books").handler(req -> {
       Book book = getBookFromJsonObject(req.getBodyAsJson());
       bookRepository.add(book)
@@ -146,9 +146,7 @@ public class JdbcMainVerticle extends AbstractVerticle {
   }
 
   private Book getBookFromJsonObject(JsonObject body) {
-
     final Book book = new Book(body.getLong("ISBN"), body.getString("TITLE"), body.getString("PUBDATE"));
-
     final JsonArray authors = body.getJsonArray("AUTHORS");
 
     for(int i = 0; i < authors.size(); i++) {

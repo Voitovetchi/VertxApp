@@ -18,8 +18,9 @@ public class SqlQueries {
                                               "WHERE b.isbn=?";
 
   public static final String INSERT_BOOK = "INSERT into book values (?, ?, ?)";
-  public static final String UPDATE_BOOK = "UPDATE book SET title=?, author=?, pubdate=? WHERE isbn=?";
+  public static final String UPDATE_BOOK = "UPDATE book SET title=?, pubdate=? WHERE isbn=?";
   public static final String DELETE_BOOK = "DELETE FROM book WHERE isbn=?";
+  public static final String DELETE_AUTHOR = "DELETE FROM author WHERE idnp=?";
 
   public static String getInsertStatement(int authorsNum) {
     StringBuffer insertStatement = new StringBuffer(
