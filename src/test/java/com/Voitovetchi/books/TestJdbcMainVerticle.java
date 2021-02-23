@@ -23,13 +23,13 @@ public class TestJdbcMainVerticle {
 
   private Vertx vertx;
   private int port;
-  final JsonObject testAuhtor = new JsonObject()
-    .put("IDNP", 4102305607524L);
+  final JsonObject testAuthor = new JsonObject()
+    .put("IDNP", 7856941235468L);
   final JsonObject testBook = new JsonObject()
     .put("ISBN", 1111111111)
     .put("TITLE", "testTitle")
     .put("PUBDATE", "2000-01-01")
-    .put("AUTHORS", new JsonArray().add(testAuhtor));
+    .put("AUTHORS", new JsonArray().add(testAuthor));
   final JsonObject updatedTestBook = new JsonObject()
     .put("ISBN", 1111111111)
     .put("TITLE", "UPDtestTitle")
@@ -87,7 +87,7 @@ public class TestJdbcMainVerticle {
       }))
       .onFailure(error -> context.verify(() -> {
         Assertions.assertFalse(error.toString().isEmpty());
-        Assertions.assertTrue(error.toString().contains("\"error\" :"));
+        Assertions.assertTrue(error.toString().contains("\"error\":"));
       }));
   }
 

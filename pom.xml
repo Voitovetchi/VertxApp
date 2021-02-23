@@ -37,7 +37,7 @@
       <dependency>
         <groupId>com.oracle.database.jdbc</groupId>
         <artifactId>ojdbc-bom</artifactId>
-        <version>19.7.0.0</version>
+        <version>${oracle.version}</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
@@ -111,14 +111,14 @@
         <artifactId>flyway-maven-plugin</artifactId>
         <version>${flyway.version}</version>
         <configuration>
-          <url>jdbc:oracle:thin@localhost:1521/books</url>
-          <user>system</user>
-          <password>voitdb</password>
+          <url>jdbc:oracle:thin:@localhost:1521/XEPDB1</url>
+          <user>books_admin</user>
+          <password>password</password>
         </configuration>
         <dependencies>
           <dependency>
             <groupId>com.oracle.database.jdbc</groupId>
-            <artifactId>ojdbc11-production</artifactId>
+            <artifactId>ojdbc8</artifactId>
             <version>${oracle.version}</version>
           </dependency>
         </dependencies>
