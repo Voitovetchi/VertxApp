@@ -1,19 +1,19 @@
 package com.Voitovetchi.books.jdbc;
 
-import com.Voitovetchi.books.domain.Author;
-import com.Voitovetchi.books.domain.Book;
+import com.Voitovetchi.books.services.JsonParser;
 import io.netty.handler.codec.http.HttpHeaderValues;
 import io.netty.handler.codec.http.HttpResponseStatus;
+import io.vertx.config.ConfigRetriever;
+import io.vertx.config.ConfigRetrieverOptions;
+import io.vertx.config.ConfigStoreOptions;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpHeaders;
-import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.BodyHandler;
-import io.vertx.ext.web.handler.StaticHandler;
 
 public class JdbcMainVerticle extends AbstractVerticle {
 
@@ -21,35 +21,28 @@ public class JdbcMainVerticle extends AbstractVerticle {
 
   @Override
   public void start(Promise<Void> startPromise) {
-    String url = "jdbc:oracle:thin:@localhost:1521/XEPDB1";
-    String driver = "oracle.jdbc.driver.OracleDriver";
-    String user = "books_admin";
-    String password = "password";
+    ConfigRetrieverOptions options = configureConfigRetrieverOptions();
 
-    bookRepository = new JdbcBookRepository(vertx, url, driver, user, password);
+    ConfigRetriever retriever = ConfigRetriever.create(vertx, options);
 
-    Router books = Router.router(vertx);
-    books.route().handler(BodyHandler.create());
-    books.route("/*").handler(StaticHandler.create());
-
-    getAll(books);
-
-    getBookByIsbn(books);
-
-    addBook(books);
-
-    updateBook(books);
-
-    deleteBook(books);
-
-    registerErrorHandler(books);
-
-    vertx.createHttpServer().requestHandler(books).listen(8888, http -> {
-      if (http.succeeded()) {
-        startPromise.complete();
-        System.out.println("HTTP server started on port 8888");
+    retriever.getConfig(ar -> {
+      if (ar.failed()) {
+        System.out.println("Config failed");
       } else {
-        startPromise.fail(http.cause());
+        JsonObject config = ar.result();
+
+        JsonObject databaseConfig = config.getJsonObject("database");
+        bookRepository = new JdbcBookRepository(vertx,
+          databaseConfig.getString("url"),
+          databaseConfig.getString("driver"),
+          databaseConfig.getString("user"),
+          databaseConfig.getString("password"));
+
+        JsonObject httpServerConfig = config.getJsonObject("httpServer");
+
+        Router books = setBookRouter();
+
+        createHttpServer(startPromise, httpServerConfig, books);
       }
     });
   }
@@ -89,8 +82,7 @@ public class JdbcMainVerticle extends AbstractVerticle {
 
   private void addBook(Router books) {
     books.post("/books").handler(req -> {
-      Book book = getBookFromJsonObject(req.getBodyAsJson());
-      bookRepository.add(book)
+      bookRepository.add(JsonParser.parseJsonObjectToBook(req.getBodyAsJson()))
         .onComplete(ar -> {
           if (ar.failed()) {
             req.fail(ar.cause());
@@ -105,7 +97,7 @@ public class JdbcMainVerticle extends AbstractVerticle {
     books.put("/books/:isbn").handler(req -> {
       final String isbn = req.pathParam("isbn");
 
-      bookRepository.update(isbn, getBookFromJsonObject(req.getBodyAsJson()))
+      bookRepository.update(isbn, JsonParser.parseJsonObjectToBook(req.getBodyAsJson()))
         .onComplete(ar -> {
           if (ar.failed()) {
             req.fail(ar.cause());
@@ -138,29 +130,44 @@ public class JdbcMainVerticle extends AbstractVerticle {
   private void registerErrorHandler(Router books) {
     books.errorHandler(500, event -> {
       if (event.failure() instanceof NullPointerException) {
-        getMessage(event, "error", "Body is empty", HttpResponseStatus.BAD_REQUEST.code());
+        getMessage(event, "error", "Body is not filled", HttpResponseStatus.BAD_REQUEST.code());
       } else {
         getMessage(event, "error", event.failure().getMessage(), HttpResponseStatus.BAD_REQUEST.code());
       }
     });
   }
 
-  private Book getBookFromJsonObject(JsonObject body) {
-    final Book book = new Book(body.getLong("ISBN"), body.getString("TITLE"), body.getString("PUBDATE"));
-    final JsonArray authors = body.getJsonArray("AUTHORS");
+  private ConfigRetrieverOptions configureConfigRetrieverOptions() {
+    ConfigStoreOptions fileStore = new ConfigStoreOptions()
+      .setType("file")
+      .setConfig(new JsonObject().put("path", "config.json"));
 
-    for(int i = 0; i < authors.size(); i++) {
-      final Author author = new Author(
-        authors.getJsonObject(i).getLong("IDNP"),
-        authors.getJsonObject(i).getString("NAME"),
-        authors.getJsonObject(i).getString("SURNAME"),
-        authors.getJsonObject(i).getString("BIRTHDATE")
-        );
+    return new ConfigRetrieverOptions().addStore(fileStore);
+  }
 
-      book.getAuthors().add(author);
-    }
+  private Router setBookRouter() {
+    Router books = Router.router(vertx);
+    books.route().handler(BodyHandler.create());
 
-    return book;
+    getAll(books);
+    getBookByIsbn(books);
+    addBook(books);
+    updateBook(books);
+    deleteBook(books);
+    registerErrorHandler(books);
+
+    return books;
+  }
+
+  private void createHttpServer(Promise<Void> startPromise, JsonObject httpServerConfig, Router books) {
+    vertx.createHttpServer().requestHandler(books).listen(httpServerConfig.getInteger("port"), http -> {
+      if (http.succeeded()) {
+        startPromise.complete();
+        System.out.println("HTTP server started on port 8888");
+      } else {
+        startPromise.fail(http.cause());
+      }
+    });
   }
 
   private void getMessage(RoutingContext req, String key, String message, int statusCode) {

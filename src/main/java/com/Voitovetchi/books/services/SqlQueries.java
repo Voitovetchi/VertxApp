@@ -1,5 +1,8 @@
 package com.Voitovetchi.books.services;
 
+import com.Voitovetchi.books.domain.Author;
+import com.Voitovetchi.books.domain.Book;
+import io.vertx.core.json.JsonArray;
 import lombok.Getter;
 
 @Getter
@@ -28,12 +31,25 @@ public class SqlQueries {
       "INTO book (isbn, title, pubdate) VALUES (?, ?, ?) "
     );
 
-    String addAuthor = "INTO author (name, surname, birthdate, idnp) VALUES (?, ?, ?, ?) " +
-                        "INTO book_author (isbn, idnp) VALUES (?, ?) ";
+    String addAuthor = "INTO book_author (isbn, idnp) VALUES (?, ?) ";
     insertStatement.append(addAuthor.repeat(authorsNum));
 
     insertStatement.append("SELECT * FROM dual");
 
     return insertStatement.toString();
+  }
+
+  public static JsonArray getParamsForAddBookQuery(Book book) {
+    final JsonArray params = new JsonArray()
+      .add(book.getIsbn())
+      .add(book.getTitle())
+      .add(book.getPubdate());
+
+    for (Author author: book.getAuthors()) {
+      params
+        .add(book.getIsbn())
+        .add(author.getIdnp());
+    }
+    return params;
   }
 }

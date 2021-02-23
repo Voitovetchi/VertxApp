@@ -1,0 +1,11 @@
+{
+  "httpServer" : {
+    "port" : 8888
+  },
+  "database" : {
+    "url" : "jdbc:oracle:thin:@localhost:1521/XEPDB1",
+    "driver" : "oracle.jdbc.driver.OracleDriver",
+    "user" : "books_admin",
+    "password" : "password"
+  }
+}

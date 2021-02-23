@@ -1,13 +1,12 @@
-/*package com.Voitovetchi.books;
+package com.Voitovetchi.books;
 
-import com.Voitovetchi.books.domain.Book;
 import com.Voitovetchi.books.jdbc.JdbcBookRepository;
 import com.Voitovetchi.books.jdbc.JdbcMainVerticle;
-import io.netty.handler.codec.http.HttpHeaderValues;
 import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Vertx;
-import io.vertx.core.http.HttpHeaders;
-import io.vertx.core.json.Json;
+import io.vertx.core.http.HttpClientResponse;
+import io.vertx.core.http.HttpMethod;
+import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.junit5.Timeout;
 import io.vertx.junit5.VertxExtension;
@@ -24,7 +23,18 @@ public class TestJdbcMainVerticle {
 
   private Vertx vertx;
   private int port;
-  final private Book testBook = new Book(11111111, "testTitle", "testAuthor", "2000-01-01");
+  final JsonObject testAuhtor = new JsonObject()
+    .put("IDNP", 4102305607524L);
+  final JsonObject testBook = new JsonObject()
+    .put("ISBN", 1111111111)
+    .put("TITLE", "testTitle")
+    .put("PUBDATE", "2000-01-01")
+    .put("AUTHORS", new JsonArray().add(testAuhtor));
+  final JsonObject updatedTestBook = new JsonObject()
+    .put("ISBN", 1111111111)
+    .put("TITLE", "UPDtestTitle")
+    .put("PUBDATE", "2001-01-01")
+    .put("AUTHORS", new JsonArray());
 
   @BeforeAll
   public void setUp(VertxTestContext context) throws IOException {
@@ -45,18 +55,8 @@ public class TestJdbcMainVerticle {
 
   @Test
   @Order(1)
-  void verticle_deployed(Vertx vertx, VertxTestContext testContext) throws Throwable {
+  void verticle_deployed(VertxTestContext testContext) {
     testContext.completeNow();
-  }
-
-  @Test
-  @Order(2)
-  public void testMyApplication(VertxTestContext context) {
-    vertx.createHttpClient().getNow(port, "localhost", "/", response -> {
-      response.handler(body -> {
-        context.completeNow();
-      });
-    });
   }
 
   @Test
@@ -76,88 +76,83 @@ public class TestJdbcMainVerticle {
   @Order(4)
   @Timeout(5000)
   public void testGetAll(VertxTestContext context) {
-    vertx.createHttpClient().getNow(port, "localhost", "/books", response -> context.verify(() -> {
-      Assertions.assertEquals(200, response.statusCode());
-      Assertions.assertTrue(response.headers().get(HttpHeaders.CONTENT_TYPE).contains(HttpHeaderValues.APPLICATION_JSON));
-      response.handler(body -> {
+    vertx.createHttpClient().request(HttpMethod.GET, port, "localhost", "/books")
+      .compose(req -> req.send().compose(HttpClientResponse::body))
+      .onSuccess(buffer -> context.verify(() -> {
+        Assertions.assertTrue(buffer.toString().contains("ISBN"));
+        Assertions.assertTrue(buffer.toString().contains("TITLE"));
+        Assertions.assertTrue(buffer.toString().contains("PUBDATE"));
+        Assertions.assertTrue(buffer.toString().contains("AUTHOR"));
         context.completeNow();
-      });
-    }));
+      }))
+      .onFailure(error -> context.verify(() -> {
+        Assertions.assertFalse(error.toString().isEmpty());
+        Assertions.assertTrue(error.toString().contains("\"error\" :"));
+      }));
   }
 
   @Test
   @Order(5)
   @Timeout(5000)
   public void testAdd(VertxTestContext context) {
-    final String json = Json.encodePrettily(testBook);
-    final String length = Integer.toString(json.length());
-    vertx.createHttpClient().post(port, "localhost", "/books")
-      .putHeader(HttpHeaders.CONTENT_TYPE, HttpHeaderValues.APPLICATION_JSON)
-      .putHeader(HttpHeaders.CONTENT_LENGTH, length)
-      .handler(response -> context.verify(() -> {
-        Assertions.assertEquals(201, response.statusCode());
-        Assertions.assertTrue(response.headers().get(HttpHeaders.CONTENT_TYPE).contains(HttpHeaderValues.APPLICATION_JSON));
-        response.handler(body -> context.verify(() -> {
-          Assertions.assertTrue(body.toString().contains("The book was successfully added"));
-          context.completeNow();
-        }));
+    vertx.createHttpClient().request(HttpMethod.POST, port, "localhost", "/books")
+      .compose(req -> req.send(testBook.toString()).compose(HttpClientResponse::body))
+      .onSuccess(buffer -> context.verify(() -> {
+        Assertions.assertTrue(buffer.toString().contains("Book was successfully added"));
+        context.completeNow();
       }))
-      .write(json)
-      .end();
+      .onFailure(error -> context.verify(() -> {
+        Assertions.assertFalse(error.toString().isEmpty());
+        Assertions.assertTrue(error.toString().contains("\"error\" :"));
+      }));
   }
 
   @Test
   @Order(6)
   @Timeout(5000)
   public void testGetByIsbn(VertxTestContext context) {
-    vertx.createHttpClient().getNow(port, "localhost", "/books/" + testBook.getIsbn(), response -> context.verify(() -> {
-      Assertions.assertEquals(200, response.statusCode());
-      Assertions.assertTrue(response.headers().get(HttpHeaders.CONTENT_TYPE).contains(HttpHeaderValues.APPLICATION_JSON));
-      response.handler(body -> {
-        String bodyString = body.toString();
-        Assertions.assertTrue(bodyString.contains(Long.toString(testBook.getIsbn())));
-        Assertions.assertTrue(bodyString.contains(testBook.getTitle()));
-        Assertions.assertTrue(bodyString.contains(testBook.getAuthor()));
-        Assertions.assertTrue(bodyString.contains(testBook.getPubdate()));
+    vertx.createHttpClient().request(HttpMethod.GET, port, "localhost", "/books/" + testBook.getLong("ISBN"))
+      .compose(req -> req.send().compose(HttpClientResponse::body))
+      .onSuccess(buffer -> context.verify(() -> {
+        Assertions.assertEquals(1, buffer.toJsonArray().size());
+        Assertions.assertTrue(buffer.toString().contains(testBook.getLong("ISBN").toString()));
         context.completeNow();
-      });
-    }));
+      }))
+      .onFailure(error -> context.verify(() -> {
+        Assertions.assertFalse(error.toString().isEmpty());
+        Assertions.assertTrue(error.toString().contains("\"error\" :"));
+      }));
   }
 
   @Test
   @Order(7)
   @Timeout(5000)
   public void testUpdate(VertxTestContext context) {
-    final Book book = new Book(11111111, "UPDtestTitle", "UPDtestAuthor", "2000-01-30");
-    final String json = Json.encodePrettily(book);
-    final String length = Integer.toString(json.length());
-    vertx.createHttpClient().put(port, "localhost", "/books/" + testBook.getIsbn())
-      .putHeader(HttpHeaders.CONTENT_TYPE, HttpHeaderValues.APPLICATION_JSON)
-      .putHeader(HttpHeaders.CONTENT_LENGTH, length)
-      .handler(response -> context.verify(() -> {
-        Assertions.assertEquals(200, response.statusCode());
-        Assertions.assertTrue(response.headers().get(HttpHeaders.CONTENT_TYPE).contains(HttpHeaderValues.APPLICATION_JSON));
-        response.handler(body -> context.verify(() -> {
-          Assertions.assertTrue(body.toString().contains("The book was successfully updated"));
-          context.completeNow();
-        }));
+    vertx.createHttpClient().request(HttpMethod.PUT, port, "localhost", "/books/" + testBook.getLong("ISBN"))
+      .compose(req -> req.send(updatedTestBook.toString()).compose(HttpClientResponse::body))
+      .onSuccess(buffer -> context.verify(() -> {
+        Assertions.assertTrue(buffer.toString().contains("Book was successfully updated"));
+        context.completeNow();
       }))
-      .write(json)
-      .end();
+      .onFailure(error -> context.verify(() -> {
+        Assertions.assertFalse(error.toString().isEmpty());
+        Assertions.assertTrue(error.toString().contains("\"error\" :"));
+      }));
   }
 
   @Test
   @Order(8)
   @Timeout(5000)
   public void testDelete(VertxTestContext context) {
-    vertx.createHttpClient().delete(port, "localhost", "/books/" + testBook.getIsbn(), response -> context.verify(() -> {
-      Assertions.assertEquals(200, response.statusCode());
-      Assertions.assertTrue(response.headers().get(HttpHeaders.CONTENT_TYPE).contains(HttpHeaderValues.APPLICATION_JSON));
-      response.handler(body -> context.verify(() -> {
-        Assertions.assertTrue(body.toString().contains("The book was successfully deleted"));
+    vertx.createHttpClient().request(HttpMethod.DELETE, port, "localhost", "/books/" + testBook.getLong("ISBN"))
+      .compose(req -> req.send().compose(HttpClientResponse::body))
+      .onComplete(buffer -> context.verify(() -> {
+        Assertions.assertTrue(buffer.toString().contains("Book was successfully deleted"));
         context.completeNow();
+      }))
+      .onFailure(error -> context.verify(() -> {
+        Assertions.assertFalse(error.toString().isEmpty());
+        Assertions.assertTrue(error.toString().contains("\"error\" :"));
       }));
-    }))
-    .end();
   }
-}*/
+}
