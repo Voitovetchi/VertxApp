@@ -13,12 +13,7 @@ public class JsonParser {
     final JsonArray authors = body.getJsonArray("AUTHORS");
 
     for(int i = 0; i < authors.size(); i++) {
-      final Author author = new Author(
-        authors.getJsonObject(i).getLong("IDNP"),
-        authors.getJsonObject(i).getString("NAME"),
-        authors.getJsonObject(i).getString("SURNAME"),
-        authors.getJsonObject(i).getString("BIRTHDATE")
-      );
+      final Author author = new Author(authors.getJsonObject(i).getLong("IDNP"));
       book.getAuthors().add(author);
     }
 

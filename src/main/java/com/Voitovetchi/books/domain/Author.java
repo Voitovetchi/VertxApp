@@ -11,6 +11,10 @@ import lombok.Setter;
 @NoArgsConstructor
 
 public class Author {
+  public Author(long idnp) {
+    this.idnp = idnp;
+  }
+
   private long idnp;
   private String name;
   private String surname;

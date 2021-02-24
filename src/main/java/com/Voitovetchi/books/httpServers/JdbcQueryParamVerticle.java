@@ -1,5 +1,6 @@
-package com.Voitovetchi.books.jdbc;
+package com.Voitovetchi.books.httpServers;
 
+import com.Voitovetchi.books.repository.JdbcBookRepository;
 import com.Voitovetchi.books.services.JsonParser;
 import io.netty.handler.codec.http.HttpHeaderValues;
 import io.netty.handler.codec.http.HttpResponseStatus;
@@ -15,7 +16,7 @@ import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.BodyHandler;
 
-public class JdbcMainVerticle extends AbstractVerticle {
+public class JdbcQueryParamVerticle extends AbstractVerticle {
 
   private JdbcBookRepository bookRepository;
 
@@ -62,8 +63,8 @@ public class JdbcMainVerticle extends AbstractVerticle {
   }
 
   private void getBookByIsbn(Router books) {
-    books.get("/books/:isbn").handler(req -> {
-      final String isbn = req.pathParam("isbn");
+    books.get("/books/getByIsbn").handler(req -> {
+      final String isbn = req.queryParam("isbn").get(0);
 
       bookRepository.getByIsbn(isbn).onComplete(ar -> {
         if (ar.failed()) {
@@ -94,8 +95,8 @@ public class JdbcMainVerticle extends AbstractVerticle {
   }
 
   private void updateBook(Router books) {
-    books.put("/books/:isbn").handler(req -> {
-      final String isbn = req.pathParam("isbn");
+    books.put("/books/updateByIsbn").handler(req -> {
+      final String isbn = req.queryParam("isbn").get(0);
 
       bookRepository.update(isbn, JsonParser.parseJsonObjectToBook(req.getBodyAsJson()))
         .onComplete(ar -> {
@@ -112,8 +113,8 @@ public class JdbcMainVerticle extends AbstractVerticle {
   }
 
   private void deleteBook(Router books) {
-    books.delete("/books/:isbn").handler(req -> {
-      final String isbn = req.pathParam("isbn");
+    books.delete("/books/deleteByIsbn").handler(req -> {
+      final String isbn = req.queryParam("isbn").get(0);
 
       bookRepository.delete(isbn).onComplete(ar -> {
         if (ar.failed()) {
@@ -179,6 +180,6 @@ public class JdbcMainVerticle extends AbstractVerticle {
 
   public static void main(String[] args) {
     Vertx vertx = Vertx.vertx();
-    vertx.deployVerticle(new JdbcMainVerticle());
+    vertx.deployVerticle(new JdbcQueryParamVerticle());
   }
 }

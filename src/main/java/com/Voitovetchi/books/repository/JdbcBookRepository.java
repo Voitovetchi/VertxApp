@@ -1,4 +1,4 @@
-package com.Voitovetchi.books.jdbc;
+package com.Voitovetchi.books.repository;
 
 import com.Voitovetchi.books.domain.Book;
 import com.Voitovetchi.books.services.JsonParser;

@@ -50,6 +50,7 @@ public class SqlQueries {
         .add(book.getIsbn())
         .add(author.getIdnp());
     }
+
     return params;
   }
 }
