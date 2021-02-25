@@ -1,13 +1,13 @@
 package com.Voitovetchi.books.testHttpServers;
 
 import com.Voitovetchi.books.httpServers.JdbcHeaderParamVerticle;
-import com.Voitovetchi.books.httpServers.JdbcQueryParamVerticle;
 import com.Voitovetchi.books.repository.JdbcBookRepository;
 import io.vertx.config.ConfigRetriever;
 import io.vertx.config.ConfigRetrieverOptions;
 import io.vertx.config.ConfigStoreOptions;
 import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Vertx;
+import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientResponse;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.JsonArray;
@@ -17,7 +17,6 @@ import io.vertx.junit5.VertxExtension;
 import io.vertx.junit5.VertxTestContext;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
-
 import java.io.IOException;
 import java.net.ServerSocket;
 
@@ -27,6 +26,7 @@ import java.net.ServerSocket;
 public class TestJdbcHeaderParamVerticle {
 
   private Vertx vertx;
+  private HttpClient httpClient;
   private JdbcBookRepository bookRepository;
   private int port;
   final JsonObject testAuthor = new JsonObject()
@@ -45,6 +45,7 @@ public class TestJdbcHeaderParamVerticle {
   @BeforeAll
   public void setUp(VertxTestContext context) throws IOException {
     vertx = Vertx.vertx();
+    httpClient = vertx.createHttpClient();
     ServerSocket socket = new ServerSocket(8888);
     port = socket.getLocalPort();
     socket.close();
@@ -100,7 +101,7 @@ public class TestJdbcHeaderParamVerticle {
   @Order(3)
   @Timeout(5000)
   public void testGetAll(VertxTestContext context) {
-    vertx.createHttpClient().request(HttpMethod.GET, port, "localhost", "/books")
+    httpClient.request(HttpMethod.GET, port, "localhost", "/books")
       .compose(req -> req.send().compose(HttpClientResponse::body))
       .onSuccess(buffer -> context.verify(() -> {
         Assertions.assertTrue(buffer.toString().contains("ISBN"));
@@ -119,7 +120,7 @@ public class TestJdbcHeaderParamVerticle {
   @Order(4)
   @Timeout(5000)
   public void testAdd(VertxTestContext context) {
-    vertx.createHttpClient().request(HttpMethod.POST, port, "localhost", "/books")
+    httpClient.request(HttpMethod.POST, port, "localhost", "/books")
       .compose(req -> req.send(testBook.toString()).compose(HttpClientResponse::body))
       .onSuccess(buffer -> context.verify(() -> {
         Assertions.assertTrue(buffer.toString().contains("Book was successfully added"));
@@ -135,7 +136,7 @@ public class TestJdbcHeaderParamVerticle {
   @Order(5)
   @Timeout(5000)
   public void testGetByIsbn(VertxTestContext context) {
-    vertx.createHttpClient().request(HttpMethod.GET, port, "localhost", "/books/getByIsbn")
+    httpClient.request(HttpMethod.GET, port, "localhost", "/books/getByIsbn")
       .compose(req -> req.putHeader("isbn", testBook.getLong("ISBN").toString()).send().compose(HttpClientResponse::body))
       .onSuccess(buffer -> context.verify(() -> {
         Assertions.assertEquals(1, buffer.toJsonArray().size());
@@ -152,7 +153,7 @@ public class TestJdbcHeaderParamVerticle {
   @Order(6)
   @Timeout(5000)
   public void testUpdate(VertxTestContext context) {
-    vertx.createHttpClient().request(HttpMethod.PUT, port, "localhost", "/books/updateByIsbn")
+    httpClient.request(HttpMethod.PUT, port, "localhost", "/books/updateByIsbn")
       .compose(req -> req.putHeader("isbn", testBook.getLong("ISBN").toString()).send(updatedTestBook.toString()).compose(HttpClientResponse::body))
       .onSuccess(buffer -> context.verify(() -> {
         Assertions.assertTrue(buffer.toString().contains("Book was successfully updated"));
@@ -168,7 +169,7 @@ public class TestJdbcHeaderParamVerticle {
   @Order(7)
   @Timeout(5000)
   public void testDelete(VertxTestContext context) {
-    vertx.createHttpClient().request(HttpMethod.DELETE, port, "localhost", "/books/deleteByIsbn")
+    httpClient.request(HttpMethod.DELETE, port, "localhost", "/books/deleteByIsbn")
       .compose(req -> req.putHeader("isbn", testBook.getLong("ISBN").toString()).send().compose(HttpClientResponse::body))
       .onComplete(buffer -> context.verify(() -> {
         Assertions.assertTrue(buffer.toString().contains("Book was successfully deleted"));
