@@ -55,9 +55,7 @@ public abstract class AbstractHttpServer extends AbstractVerticle {
             .putHeader(HttpHeaders.CONTENT_TYPE, HttpHeaderValues.APPLICATION_JSON)
             .end(result.encode());
         })
-        .onFailure(error -> {
-          req.fail(error);
-        });
+        .onFailure(req::fail);
       });
   }
 
@@ -69,9 +67,7 @@ public abstract class AbstractHttpServer extends AbstractVerticle {
         .onComplete(result -> {
           getMessage(req, "message", "Book was successfully added", HttpResponseStatus.CREATED.code());
         })
-        .onFailure(error -> {
-          req.fail(error);
-        });
+        .onFailure(req::fail);
     });
   }
 
@@ -141,9 +137,7 @@ public abstract class AbstractHttpServer extends AbstractVerticle {
             .end(result.encode());
         }
       })
-      .onFailure(error -> {
-        req.fail(error);
-      });
+      .onFailure(req::fail);
   }
 
   protected void updateBookRequest(RoutingContext req, String isbn) {
@@ -155,9 +149,7 @@ public abstract class AbstractHttpServer extends AbstractVerticle {
           getMessage(req, "message", "Book was successfully updated", HttpResponseStatus.ACCEPTED.code());
         }
       })
-      .onFailure(error -> {
-        req.fail(error);
-      });
+      .onFailure(req::fail);
   }
 
   protected void deleteBookRequest(RoutingContext req, String isbn) {
@@ -169,8 +161,6 @@ public abstract class AbstractHttpServer extends AbstractVerticle {
           getMessage(req, "message", "Book was successfully deleted", HttpResponseStatus.ACCEPTED.code());
         }
       })
-      .onFailure(error -> {
-        req.fail(error);
-      });
+      .onFailure(req::fail);
   }
 }

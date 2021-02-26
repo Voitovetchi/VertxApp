@@ -9,7 +9,6 @@ import lombok.Setter;
 @Getter
 @AllArgsConstructor
 @NoArgsConstructor
-
 public class Author {
   public Author(long idnp) {
     this.idnp = idnp;

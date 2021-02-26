@@ -8,7 +8,6 @@ import java.util.List;
 @Setter
 @Getter
 @NoArgsConstructor
-
 public class Book {
   public Book(long isbn, String title, String pubdate) {
     this.isbn = isbn;

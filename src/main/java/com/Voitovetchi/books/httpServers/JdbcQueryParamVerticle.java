@@ -1,20 +1,7 @@
 package com.Voitovetchi.books.httpServers;
 
-import com.Voitovetchi.books.repository.JdbcBookRepository;
-import com.Voitovetchi.books.services.JsonParser;
-import io.netty.handler.codec.http.HttpHeaderValues;
-import io.netty.handler.codec.http.HttpResponseStatus;
-import io.vertx.config.ConfigRetriever;
-import io.vertx.config.ConfigRetrieverOptions;
-import io.vertx.config.ConfigStoreOptions;
-import io.vertx.core.AbstractVerticle;
-import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
-import io.vertx.core.http.HttpHeaders;
-import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.Router;
-import io.vertx.ext.web.RoutingContext;
-import io.vertx.ext.web.handler.BodyHandler;
 
 public class JdbcQueryParamVerticle extends AbstractHttpServer {
 
