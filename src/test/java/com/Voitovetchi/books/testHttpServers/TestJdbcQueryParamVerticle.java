@@ -1,6 +1,6 @@
 package com.Voitovetchi.books.testHttpServers;
 
-import com.Voitovetchi.books.httpServers.JdbcQueryParamVerticle;
+import com.voitovetchi.books.httpServers.JdbcQueryParamVerticle;
 import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Future;
 import io.vertx.core.buffer.Buffer;

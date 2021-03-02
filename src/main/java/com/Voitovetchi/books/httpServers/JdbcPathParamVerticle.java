@@ -1,22 +1,25 @@
-package com.Voitovetchi.books.httpServers;
+package com.voitovetchi.books.httpServers;
 
 import io.vertx.core.Vertx;
 import io.vertx.ext.web.Router;
 
 public class JdbcPathParamVerticle extends AbstractHttpServer {
 
+  private static final String URL = "/books/:isbn";
+  public static final String PARAM = "isbn";
+
   @Override
   protected void getBookByIsbn(Router books) {
-    books.get("/books/:isbn").handler(req -> {
-      final String isbn = req.pathParam("isbn");
+    books.get(URL).handler(req -> {
+      final String isbn = req.pathParam(PARAM);
       getBookByIsbnRequest(req, isbn);
     });
   }
 
   @Override
   protected void updateBook(Router books) {
-    books.put("/books/:isbn").handler(req -> {
-      final String isbn = req.pathParam("isbn");
+    books.put(URL).handler(req -> {
+      final String isbn = req.pathParam(PARAM);
       updateBookRequest(req, isbn);
     });
   }
@@ -24,8 +27,8 @@ public class JdbcPathParamVerticle extends AbstractHttpServer {
 
   @Override
   protected void deleteBook(Router books) {
-    books.delete("/books/:isbn").handler(req -> {
-      final String isbn = req.pathParam("isbn");
+    books.delete(URL).handler(req -> {
+      final String isbn = req.pathParam(PARAM);
       deleteBookRequest(req, isbn);
     });
   }

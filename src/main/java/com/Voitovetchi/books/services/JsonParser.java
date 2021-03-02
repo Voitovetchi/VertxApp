@@ -1,7 +1,7 @@
-package com.Voitovetchi.books.services;
+package com.voitovetchi.books.services;
 
-import com.Voitovetchi.books.domain.Author;
-import com.Voitovetchi.books.domain.Book;
+import com.voitovetchi.books.domain.Author;
+import com.voitovetchi.books.domain.Book;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import java.util.ArrayList;

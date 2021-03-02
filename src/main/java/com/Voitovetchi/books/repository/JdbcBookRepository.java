@@ -1,8 +1,8 @@
-package com.Voitovetchi.books.repository;
+package com.voitovetchi.books.repository;
 
-import com.Voitovetchi.books.domain.Book;
-import com.Voitovetchi.books.services.JsonParser;
-import com.Voitovetchi.books.services.SqlQueries;
+import com.voitovetchi.books.domain.Book;
+import com.voitovetchi.books.services.JsonParser;
+import com.voitovetchi.books.services.SqlQueries;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
 import io.vertx.core.Vertx;

@@ -1,4 +1,4 @@
-package com.Voitovetchi.books.domain;
+package com.voitovetchi.books.domain;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;

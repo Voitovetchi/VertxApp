@@ -1,7 +1,7 @@
-package com.Voitovetchi.books.httpServers;
+package com.voitovetchi.books.httpServers;
 
-import com.Voitovetchi.books.repository.JdbcBookRepository;
-import com.Voitovetchi.books.services.JsonParser;
+import com.voitovetchi.books.repository.JdbcBookRepository;
+import com.voitovetchi.books.services.JsonParser;
 import io.netty.handler.codec.http.HttpHeaderValues;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.config.ConfigRetriever;
@@ -14,9 +14,12 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.BodyHandler;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public abstract class AbstractHttpServer extends AbstractVerticle {
 
+  protected static final Logger LOGGER = LoggerFactory.getLogger(AbstractHttpServer.class);
   private JdbcBookRepository bookRepository;
 
   @Override
@@ -27,7 +30,7 @@ public abstract class AbstractHttpServer extends AbstractVerticle {
 
     retriever.getConfig(ar -> {
       if (ar.failed()) {
-        System.out.println("Config failed");
+        LOGGER.error("Config failed: ");
       } else {
         JsonObject config = ar.result();
 
@@ -77,6 +80,7 @@ public abstract class AbstractHttpServer extends AbstractVerticle {
 
   private void registerErrorHandler(Router books) {
     books.errorHandler(500, req -> {
+      LOGGER.error("Failed: ", req.failure());
       if (req.failure() instanceof NullPointerException) {
         getMessage(req, "error", "Body is not filled", HttpResponseStatus.BAD_REQUEST.code());
       } else {
@@ -111,7 +115,7 @@ public abstract class AbstractHttpServer extends AbstractVerticle {
     vertx.createHttpServer().requestHandler(books).listen(httpServerConfig.getInteger("port"), http -> {
       if (http.succeeded()) {
         startPromise.complete();
-        System.out.println("HTTP server started on port 8888");
+        LOGGER.info("HTTP server started on port 8888");
       } else {
         startPromise.fail(http.cause());
       }

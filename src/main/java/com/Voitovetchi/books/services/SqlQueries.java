@@ -1,7 +1,7 @@
-package com.Voitovetchi.books.services;
+package com.voitovetchi.books.services;
 
-import com.Voitovetchi.books.domain.Author;
-import com.Voitovetchi.books.domain.Book;
+import com.voitovetchi.books.domain.Author;
+import com.voitovetchi.books.domain.Book;
 import io.vertx.core.json.JsonArray;
 import lombok.Getter;
 
@@ -26,17 +26,12 @@ public class SqlQueries {
   public static final String DELETE_AUTHOR = "DELETE FROM author WHERE idnp=?";
 
   public static String getInsertStatement(int authorsNum) {
-    StringBuffer insertStatement = new StringBuffer(
-      "INSERT ALL " +
-      "INTO book (isbn, title, pubdate) VALUES (?, ?, ?) "
-    );
 
     String addAuthor = "INTO book_author (isbn, idnp) VALUES (?, ?) ";
-    insertStatement.append(addAuthor.repeat(authorsNum));
 
-    insertStatement.append("SELECT * FROM dual");
-
-    return insertStatement.toString();
+    return "INSERT ALL " +
+      "INTO book (isbn, title, pubdate) VALUES (?, ?, ?) " + addAuthor.repeat(authorsNum) +
+      "SELECT * FROM dual";
   }
 
   public static JsonArray getParamsForAddBookQuery(Book book) {

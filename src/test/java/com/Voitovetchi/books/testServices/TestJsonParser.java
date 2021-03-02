@@ -1,8 +1,8 @@
 package com.Voitovetchi.books.testServices;
 
-import com.Voitovetchi.books.domain.Author;
-import com.Voitovetchi.books.domain.Book;
-import com.Voitovetchi.books.services.JsonParser;
+import com.voitovetchi.books.domain.Author;
+import com.voitovetchi.books.domain.Book;
+import com.voitovetchi.books.services.JsonParser;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import org.junit.jupiter.api.Assertions;
