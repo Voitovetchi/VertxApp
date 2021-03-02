@@ -1,4 +1,4 @@
-package com.Voitovetchi.books.testServices;
+package com.voitovetchi.books.testservices;
 
 import com.voitovetchi.books.domain.Author;
 import com.voitovetchi.books.domain.Book;

@@ -1,4 +1,4 @@
-package com.voitovetchi.books.httpServers;
+package com.voitovetchi.books.httpservers;
 
 import io.vertx.core.Vertx;
 import io.vertx.ext.web.Router;

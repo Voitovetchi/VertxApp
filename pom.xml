@@ -19,7 +19,7 @@
     <vertx.version>4.0.2</vertx.version>
     <junit-jupiter.version>5.7.0</junit-jupiter.version>
 
-    <main.verticle>com.Voitovetchi.books.MainVerticle</main.verticle>
+    <main.verticle>com.voitovetchi.books.MainVerticle</main.verticle>
     <launcher.class>io.vertx.core.Launcher</launcher.class>
     <flyway.version>6.3.3</flyway.version>
     <oracle.version>21.1.0.0</oracle.version>

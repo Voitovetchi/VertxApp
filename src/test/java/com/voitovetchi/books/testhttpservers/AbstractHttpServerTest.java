@@ -1,4 +1,4 @@
-package com.Voitovetchi.books.testHttpServers;
+package com.voitovetchi.books.testhttpservers;
 
 import com.voitovetchi.books.repository.JdbcBookRepository;
 import io.vertx.config.ConfigRetriever;

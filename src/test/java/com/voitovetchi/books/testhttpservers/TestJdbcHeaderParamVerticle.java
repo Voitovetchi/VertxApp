@@ -1,6 +1,6 @@
-package com.Voitovetchi.books.testHttpServers;
+package com.voitovetchi.books.testhttpservers;
 
-import com.voitovetchi.books.httpServers.JdbcQueryParamVerticle;
+import com.voitovetchi.books.httpservers.JdbcHeaderParamVerticle;
 import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Future;
 import io.vertx.core.buffer.Buffer;
@@ -17,15 +17,13 @@ import java.io.IOException;
 @ExtendWith(VertxExtension.class)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-public class TestJdbcQueryParamVerticle extends AbstractHttpServerTest{
-
-  private final String isbnValue = "isbn=" + testBook.getLong("ISBN");
+public class TestJdbcHeaderParamVerticle extends AbstractHttpServerTest{
 
   @BeforeAll
   @Override
   public void setUp(VertxTestContext context) throws IOException {
     DeploymentOptions options = getDeploymentOptions();
-    vertx.deployVerticle(JdbcQueryParamVerticle.class.getName(), options, context.succeeding(value -> context.checkpoint().flag()));
+    vertx.deployVerticle(JdbcHeaderParamVerticle.class.getName(), options, context.succeeding(value -> context.checkpoint().flag()));
   }
 
   @Test
@@ -33,8 +31,8 @@ public class TestJdbcQueryParamVerticle extends AbstractHttpServerTest{
   @Timeout(5000)
   @Override
   public void testGetByIsbn(VertxTestContext context) {
-    Future<Buffer> request = httpClient.request(HttpMethod.GET, port, "localhost", "/books/getByIsbn?" + isbnValue)
-      .compose(req -> req.send().compose(HttpClientResponse::body));
+    Future<Buffer> request = httpClient.request(HttpMethod.GET, port, "localhost", "/books/getByIsbn")
+      .compose(req -> req.putHeader("isbn", testBook.getLong("ISBN").toString()).send().compose(HttpClientResponse::body));
     testGetByIsbnRequest(request, context);
   }
 
@@ -43,8 +41,8 @@ public class TestJdbcQueryParamVerticle extends AbstractHttpServerTest{
   @Timeout(5000)
   @Override
   public void testUpdate(VertxTestContext context) {
-    Future<Buffer> request = httpClient.request(HttpMethod.PUT, port, "localhost", "/books/updateByIsbn?" + isbnValue)
-      .compose(req -> req.send(updatedTestBook.toString()).compose(HttpClientResponse::body));
+    Future<Buffer> request = httpClient.request(HttpMethod.PUT, port, "localhost", "/books/updateByIsbn")
+      .compose(req -> req.putHeader("isbn", testBook.getLong("ISBN").toString()).send(updatedTestBook.toString()).compose(HttpClientResponse::body));
     testUpdateRequest(request, context);
   }
 
@@ -53,8 +51,8 @@ public class TestJdbcQueryParamVerticle extends AbstractHttpServerTest{
   @Timeout(5000)
   @Override
   public void testDelete(VertxTestContext context) {
-    Future<Buffer> request = httpClient.request(HttpMethod.DELETE, port, "localhost", "/books/deleteByIsbn?" + isbnValue)
-      .compose(req -> req.send().compose(HttpClientResponse::body));
+    Future<Buffer> request = httpClient.request(HttpMethod.DELETE, port, "localhost", "/books/deleteByIsbn")
+      .compose(req -> req.putHeader("isbn", testBook.getLong("ISBN").toString()).send().compose(HttpClientResponse::body));
     testDeleteRequest(request, context);
   }
 }
